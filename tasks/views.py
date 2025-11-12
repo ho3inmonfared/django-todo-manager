@@ -1,11 +1,13 @@
-from django.shortcuts import render,redirect
+from django.shortcuts import render,redirect,get_object_or_404
 from .models import Task
 from .forms import TaskForm
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 
 @login_required
 def index(request):
     tasks = Task.objects.filter(user=request.user).order_by('-created_at')
+    
     if request.method == 'POST':
         form = TaskForm(request.POST)
         if form.is_valid():
@@ -18,3 +20,19 @@ def index(request):
     
     context = {'tasks': tasks, 'form': form}
     return render(request,'index.html',context)
+
+
+@login_required
+@require_POST
+def delete_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id, user=request.user)
+    task.delete()
+    return redirect('index')
+
+@login_required
+@require_POST
+def complete_task(request, task_id):
+    task = get_object_or_404(Task, id=task_id, user=request.user)
+    task.completed = not task.completed
+    task.save()
+    return redirect('index')
